@@ -1,0 +1,53 @@
+# =========================
+# Node / React / Vite
+# =========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Build output directories for React/Vite
+dist/
+build/
+
+# Vite cache
+.vite/
+
+# Environment variable files
+.env
+.env.local
+.env.*.local
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE / Editor settings
+.vscode/
+.idea/
+
+# =========================
+# Python / FastAPI
+# =========================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Packaging / distribution
+*.egg-info/
+dist/
+build/
+
+# Pytest and other caches
+.cache/
+.pytest_cache/
+.mypy_cache/
+
