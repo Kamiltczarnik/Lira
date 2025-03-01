@@ -172,7 +172,7 @@ export default function Dashboard() {
                 <h1 className="text-3xl font-bold">
                   {greeting}, {userName}
                 </h1>
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-6 md:grid-cols-2">
                   <Card>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
@@ -193,17 +193,6 @@ export default function Dashboard() {
                     <CardContent>
                       <div className="text-2xl font-bold">{formatCurrency(1250)}</div>
                       <p className="text-xs text-muted-foreground">-4.3% from last month</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium">Rewards Points</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">
-                        {userData?.accounts.reduce((total, account) => total + (account.rewards || 0), 0) || 0}
-                      </div>
-                      <p className="text-xs text-muted-foreground">+120 points this month</p>
                     </CardContent>
                   </Card>
                 </div>

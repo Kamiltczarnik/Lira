@@ -100,7 +100,7 @@ def get_mock_user_data(customer_id: str):
             type="withdrawal",
             merchant_name="Grocery Store",
             amount=85.75,
-            date="2023-03-01T12:00:00Z",
+            date="2025-02-01T12:00:00Z",
             description="Weekly groceries"
         ),
         Transaction(
@@ -108,7 +108,7 @@ def get_mock_user_data(customer_id: str):
             type="withdrawal",
             merchant_name="Gas Station",
             amount=45.00,
-            date="2023-03-03T15:30:00Z",
+            date="2025-02-03T15:30:00Z",
             description="Fuel"
         ),
         Transaction(
@@ -116,7 +116,7 @@ def get_mock_user_data(customer_id: str):
             type="deposit",
             merchant_name="Employer",
             amount=2500.00,
-            date="2023-03-05T09:00:00Z",
+            date="2025-02-05T09:00:00Z",
             description="Salary deposit"
         ),
         Transaction(
@@ -124,7 +124,7 @@ def get_mock_user_data(customer_id: str):
             type="withdrawal",
             merchant_name="Restaurant",
             amount=65.40,
-            date="2023-03-07T19:45:00Z",
+            date="2025-02-07T19:45:00Z",
             description="Dinner"
         ),
         Transaction(
@@ -132,7 +132,7 @@ def get_mock_user_data(customer_id: str):
             type="withdrawal",
             merchant_name="Online Store",
             amount=120.99,
-            date="2023-03-10T14:20:00Z",
+            date="2025-02-10T14:20:00Z",
             description="Electronics purchase"
         )
     ]
