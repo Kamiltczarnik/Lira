@@ -82,14 +82,6 @@ def get_mock_user_data(customer_id: str):
             balance=12000.00,
             rewards=0,
             account_number="987654321"
-        ),
-        Account(
-            id=f"{customer_id}-credit",
-            type="Credit Card",
-            nickname="Rewards Card",
-            balance=1250.75,
-            rewards=3500,
-            account_number="4111111111111111"
         )
     ]
     

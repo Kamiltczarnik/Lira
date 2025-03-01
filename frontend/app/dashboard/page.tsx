@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {CreditCard, User, Bell, LogOut, Home, BarChart4, Send, Clock } from "lucide-react"
+import { CreditCard, User, Bell, LogOut, Home, BarChart4, Send, Clock, PieChart as PieChartIcon } from "lucide-react"
 import VoiceAssistant from "@/components/voice-assistant"
 import { useRouter } from "next/navigation"
 import { formatCurrency } from "@/lib/utils"
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts"
 
 // Define types for our user data
 type Account = {
@@ -17,7 +18,6 @@ type Account = {
   type: string
   nickname: string
   balance: number
-  rewards: number
   account_number: string
 }
 
@@ -44,6 +44,15 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [userName, setUserName] = useState("User")
   const router = useRouter()
+  
+  // Cool color palette
+  const COLORS = [
+    '#3498db', // bright blue
+    '#2980b9', // darker blue
+    '#1abc9c', // teal
+    '#9b59b6', // purple
+    '#8e44ad'  // darker purple
+  ]
 
   useEffect(() => {
     // Set greeting based on time of day
@@ -116,11 +125,42 @@ export default function Dashboard() {
   // Format date for display
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+    return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(date)
+  }
+
+  // Get transaction categories and amounts for visualization
+  const getTransactionCategories = () => {
+    if (!userData?.transactions || userData.transactions.length === 0) {
+      return [
+        { name: "No Data", value: 100 }
+      ]
+    }
+    
+    const categories: Record<string, number> = {}
+    
+    userData.transactions.forEach(transaction => {
+      // Skip employer payments and deposits
+      if (
+        transaction.type === "deposit" || 
+        transaction.merchant_name?.toLowerCase().includes("employer") ||
+        transaction.description?.toLowerCase().includes("employer") ||
+        transaction.description?.toLowerCase().includes("payroll") ||
+        transaction.merchant_name?.toLowerCase().includes("payroll")
+      ) {
+        return
+      }
+      
+      const categoryName = transaction.merchant_name || transaction.description || "Other"
+      if (!categories[categoryName]) {
+        categories[categoryName] = 0
+      }
+      categories[categoryName] += transaction.amount
     })
+    
+    return Object.entries(categories)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5)
   }
 
   return (
@@ -128,15 +168,14 @@ export default function Dashboard() {
       <header className="sticky top-0 z-50 w-full border-b bg-background">
         <div className="container flex h-16 items-center justify-between py-4">
           <div className="flex items-center gap-2">
-{/* <!-- <Shield className="h-6 w-6 text-primary" /> --> */}
-<Image
-  src="/logo.png"
-  alt="My Logo"
-  width={64}
-  height={64}
-  style={{ width: '64px', height: '64px' }}
-/>
-<span className="text-xl font-bold">LIRA</span>
+            <Image
+              src="/logo.png"
+              alt="My Logo"
+              width={64}
+              height={64}
+              style={{ width: '64px', height: '64px' }}
+            />
+            <span className="text-xl font-bold">LIRA</span>
           </div>
           <nav className="hidden md:flex gap-6">
             <Link href="/dashboard" className="text-sm font-medium hover:underline underline-offset-4">
@@ -223,6 +262,66 @@ export default function Dashboard() {
                         <span className="font-medium">{formatCurrency(account.balance)}</span>
                       </div>
                     ))}
+                  </CardContent>
+                </Card>
+
+                {/* Transaction Visualization Card with Pie Chart */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <PieChartIcon className="h-4 w-4" />
+                      Spending Breakdown
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={getTransactionCategories()}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            outerRadius={80}
+                            innerRadius={50}
+                            paddingAngle={0}
+                            dataKey="value"
+                            label={false}
+                          >
+                            {getTransactionCategories().map((entry, index) => (
+                              <Cell 
+                                key={`cell-${index}`} 
+                                fill={COLORS[index % COLORS.length]} 
+                                stroke="none"
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            formatter={(value: number) => formatCurrency(value)}
+                            contentStyle={{
+                              backgroundColor: "hsl(var(--background))",
+                              borderColor: "hsl(var(--border))",
+                              borderRadius: "var(--radius)",
+                              boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)"
+                            }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="mt-4 space-y-2">
+                      {getTransactionCategories().map((category, index) => (
+                        <div key={index} className="flex justify-between items-center">
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                            />
+                            <span className="text-sm">{category.name}</span>
+                          </div>
+                          <span className="text-sm font-medium">{formatCurrency(category.value)}</span>
+                        </div>
+                      ))}
+                    </div>
                   </CardContent>
                 </Card>
 
