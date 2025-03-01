@@ -12,7 +12,7 @@ export default function Home() {
         <div className="container flex h-16 items-center justify-between py-4">
           <div className="flex items-center gap-2">
             <Shield className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">SecureBank</span>
+            <span className="text-xl font-bold">Lira</span>
           </div>
           <nav className="hidden md:flex gap-6">
             <Link href="#" className="text-sm font-medium hover:underline underline-offset-4">
@@ -140,7 +140,7 @@ export default function Home() {
           <div className="flex flex-col gap-2 md:gap-4 md:flex-1">
             <div className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-primary" />
-              <span className="text-lg font-bold">SecureBank</span>
+              <span className="text-lg font-bold">Lira</span>
             </div>
             <p className="text-sm text-muted-foreground">Secure, smart banking for everyone.</p>
           </div>
@@ -190,7 +190,7 @@ export default function Home() {
         <div className="border-t py-6">
           <div className="container flex flex-col items-center justify-between gap-4 md:flex-row">
             <p className="text-xs text-muted-foreground">
-              &copy; {new Date().getFullYear()} SecureBank. All rights reserved.
+              &copy; {new Date().getFullYear()} Lira. All rights reserved.
             </p>
             <div className="flex gap-4">
               <Link href="#" className="text-xs text-muted-foreground hover:underline">
