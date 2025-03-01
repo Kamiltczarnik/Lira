@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ArrowRight } from "lucide-react"
+import { toast } from "sonner"
 
 export default function LoginForm() {
   const [username, setUsername] = useState("")
@@ -20,13 +21,54 @@ export default function LoginForm() {
     e.preventDefault()
     setIsLoading(true)
 
-    // Simulate authentication delay
-    setTimeout(() => {
-      // In a real app, you would validate credentials with a backend
-      // This is just a demo that always succeeds
-      setIsLoading(false)
+    try {
+      // Call our backend API to authenticate
+      const response = await fetch("http://localhost:8000/api/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Login failed")
+      }
+
+      const data = await response.json()
+      
+      // Store the customer ID in localStorage for subsequent API calls
+      localStorage.setItem("customerId", data.customer_id)
+      localStorage.setItem("username", username)
+      
+      // Fetch user data
+      await fetchUserData(data.customer_id)
+      
+      // Navigate to dashboard
       router.push("/dashboard")
-    }, 1500)
+    } catch (error) {
+      console.error("Login error:", error)
+      toast.error("Login failed. Please check your credentials.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const fetchUserData = async (customerId: string) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/user/${customerId}`)
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch user data")
+      }
+      
+      const userData = await response.json()
+      
+      // Store user data in localStorage
+      localStorage.setItem("userData", JSON.stringify(userData))
+    } catch (error) {
+      console.error("Error fetching user data:", error)
+    }
   }
 
   return (
