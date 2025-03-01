@@ -2,7 +2,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Shield, PieChart, Mic, MessageSquare } from "lucide-react"
+import {PieChart, Mic, MessageSquare } from "lucide-react"
 import LoginForm from "@/components/login-form"
 
 export default function Home() {
@@ -11,7 +11,7 @@ export default function Home() {
       <header className="border-b">
         <div className="container flex h-16 items-center justify-between py-4">
           <div className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" />
+          <Image src="/logo.png" alt="My Logo" width={64} height={64}   style={{ width: '64px', height: '64px' }}  />
             <span className="text-xl font-bold">Lira</span>
           </div>
           <nav className="hidden md:flex gap-6">
@@ -53,7 +53,7 @@ export default function Home() {
               </div>
               <div className="mx-auto lg:ml-auto">
                 <Image
-                  src="/placeholder.svg?height=400&width=600"
+                  src="/logo.png"
                   alt="Banking Dashboard"
                   width={600}
                   height={400}
@@ -139,7 +139,7 @@ export default function Home() {
         <div className="container flex flex-col gap-4 py-10 md:flex-row md:gap-8">
           <div className="flex flex-col gap-2 md:gap-4 md:flex-1">
             <div className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-primary" />
+          <Image src="/logo.png" alt="My Logo" width={64} height={64}   style={{ width: '64px', height: '64px' }}  />
               <span className="text-lg font-bold">Lira</span>
             </div>
             <p className="text-sm text-muted-foreground">Secure, smart banking for everyone.</p>
