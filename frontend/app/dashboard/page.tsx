@@ -3,9 +3,10 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import Image from "next/image"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Shield, CreditCard, User, Bell, LogOut, Home, BarChart4, Send, Clock } from "lucide-react"
+import {CreditCard, User, Bell, LogOut, Home, BarChart4, Send, Clock } from "lucide-react"
 import VoiceAssistant from "@/components/voice-assistant"
 import { useRouter } from "next/navigation"
 import { formatCurrency } from "@/lib/utils"
@@ -127,10 +128,15 @@ export default function Dashboard() {
       <header className="sticky top-0 z-50 w-full border-b bg-background">
         <div className="container flex h-16 items-center justify-between py-4">
           <div className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">
-              LIRA
-            </span>
+<!-- <Shield className="h-6 w-6 text-primary" /> -->
+<Image
+  src="/logo.png"
+  alt="My Logo"
+  width={64}
+  height={64}
+  style={{ width: '64px', height: '64px' }}
+/>
+<span className="text-xl font-bold">LIRA</span>
           </div>
           <nav className="hidden md:flex gap-6">
             <Link href="/dashboard" className="text-sm font-medium hover:underline underline-offset-4">
