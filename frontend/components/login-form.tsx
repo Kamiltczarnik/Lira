@@ -112,7 +112,7 @@ export default function LoginForm() {
       </Button>
       <div className="text-center text-sm">
         <span className="text-muted-foreground">Don&apos;t have an account? </span>
-        <Button variant="link" className="p-0 h-auto" type="button">
+        <Button variant="link" className="p-0 h-auto" type="button" onClick={() => router.push("/signup")}>
           Sign up
         </Button>
       </div>

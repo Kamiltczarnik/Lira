@@ -159,6 +159,9 @@ def get_mock_user_data(customer_id: str):
     elif customer_id == "65b7a5a9322fa89d340a8c1c":
         first_name = "Admin"
         last_name = "User"
+    elif customer_id == "65b7a5a9322fa89d340a8c12":
+        first_name = "Kamil"
+        last_name = "Czajkowski"
 
     accounts = [
         Account(
@@ -337,7 +340,8 @@ async def login(login_data: LoginData):
     customer_mapping = {
         "joe": "65b7a5a9322fa89d340a8c1a",
         "jane": "65b7a5a9322fa89d340a8c1b",
-        "admin": "65b7a5a9322fa89d340a8c1c"
+        "admin": "65b7a5a9322fa89d340a8c1c",
+        "kamil": "65b7a5a9322fa89d340a8c12"
     }
 
     if login_data.username not in customer_mapping:
