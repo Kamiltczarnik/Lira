@@ -15,17 +15,11 @@ export default function Home() {
             <span className="text-xl font-bold">Lira</span>
           </div>
           <nav className="hidden md:flex gap-6">
-            <Link href="#" className="text-sm font-medium hover:underline underline-offset-4">
-              Personal
+            <Link href="#login" className="text-sm font-medium hover:underline underline-offset-4">
+              Log in
             </Link>
-            <Link href="/business" className="text-sm font-medium hover:underline underline-offset-4">
-              Business
-            </Link>
-            <Link href="/about" className="text-sm font-medium hover:underline underline-offset-4">
-              About
-            </Link>
-            <Link href="/support" className="text-sm font-medium hover:underline underline-offset-4">
-              Support
+            <Link href="/signup" className="text-sm font-medium hover:underline underline-offset-4">
+              Sign Up
             </Link>
           </nav>
         </div>
