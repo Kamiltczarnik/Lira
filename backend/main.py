@@ -255,19 +255,43 @@ async def chat(request: ChatRequest):
     try:
         # Log the incoming request
         print(f"Received chat request with {len(request.messages)} messages")
-        for i, msg in enumerate(request.messages):
-            print(f"Message {i}: {msg.role} - {msg.content[:50]}...")
         
-        print(f"User data included: {request.user_data is not None}")
-        
-        # Extract messages from the request
-        messages = [{"role": msg.role, "content": msg.content} for msg in request.messages]
+        # Extract user data and format it for inclusion in the prompt
+        user_context = ""
+        if request.user_data:
+            user = request.user_data
+            user_context = f"""
+User Information:
+- Name: {user['first_name']} {user['last_name']}
+- Customer ID: {user['customer_id']}
+
+Accounts:
+"""
+            for account in user['accounts']:
+                user_context += f"- {account['nickname']} ({account['type']}): ${account['balance']:,.2f}\n"
+            
+            user_context += "\nRecent Transactions:\n"
+            # Sort transactions by date (newest first)
+            sorted_transactions = sorted(user['transactions'], key=lambda x: x['date'], reverse=True)
+            for i, tx in enumerate(sorted_transactions[:5]):  # Show only 5 most recent
+                user_context += f"- {tx['date'][:10]}: {tx['merchant_name']} - ${tx['amount']:,.2f} ({tx['type']})\n"
         
         # Add system message to guide the AI
         system_message = {
             "role": "system", 
-            "content": "You are a helpful AI banking assistant. Provide concise and accurate information about banking services, account details, and financial advice. If user data is available, reference it in your responses."
+            "content": f"""You are a helpful AI banking assistant for Capital One Bank. Provide concise and accurate information about banking services, account details, and financial advice.
+
+{user_context if request.user_data else "No user data is available for this session."}
+
+When referencing the user's finances:
+1. Use their actual account balances and transaction history
+2. Offer personalized insights based on their spending patterns
+3. Be helpful and professional
+4. Keep responses brief and to the point"""
         }
+        
+        # Extract messages from the request
+        messages = [{"role": msg.role, "content": msg.content} for msg in request.messages]
         
         # Prepare the full message list for OpenAI
         full_messages = [system_message] + messages
