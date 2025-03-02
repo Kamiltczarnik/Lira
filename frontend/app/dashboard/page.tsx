@@ -371,7 +371,7 @@ export default function Dashboard() {
                   </TabsContent>
                 </Tabs>
               </div>
-              <div className="md:w-1/3">
+              <div className="md:col-span-1 h-[600px]">
                 <VoiceAssistant userData={userData} />
               </div>
             </div>
