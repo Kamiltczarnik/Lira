@@ -51,6 +51,3 @@ pydantic
 python-dotenv
 openpyxl
 python-dotenv==1.0.0
-starlette
-gTTS
-httpx

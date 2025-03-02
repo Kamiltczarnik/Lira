@@ -9,7 +9,6 @@ import { cn, formatCurrency } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useRouter } from "next/navigation"
 
-// Define types for our user data
 type Account = {
   id: string
   type: string
@@ -50,7 +49,6 @@ export default function VoiceAssistant({ userData }: VoiceAssistantProps) {
   const [isSpeaking, setIsSpeaking] = useState(true)
   const [transcript, setTranscript] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
-  // We use displayMessages for rendering with unique IDs
   const [displayMessages, setDisplayMessages] = useState<{ text: string; isUser: boolean; id: string }[]>([])
   const [inputMessage, setInputMessage] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
@@ -122,7 +120,7 @@ export default function VoiceAssistant({ userData }: VoiceAssistantProps) {
     }
   }, [synth])
 
-  // Update the scrolling useEffect to prevent page scrolling while ensuring chat scrolls
+  // Update scrolling when displayMessages or processing state changes
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ 
@@ -255,8 +253,8 @@ export default function VoiceAssistant({ userData }: VoiceAssistantProps) {
   }
 
   const preventScrollPropagation = (e: React.WheelEvent) => {
-    e.stopPropagation();
-  };
+    e.stopPropagation()
+  }
 
   return (
     <Card className="w-full h-full min-h-[600px] flex flex-col">
@@ -295,6 +293,7 @@ export default function VoiceAssistant({ userData }: VoiceAssistantProps) {
               </div>
             </div>
           ))}
+          <div ref={messagesEndRef} />
           {transcript && (
             <div className="flex justify-end">
               <div className="max-w-[80%] break-words rounded-lg px-4 py-3 text-sm bg-primary/50 text-primary-foreground shadow-sm">
@@ -310,7 +309,6 @@ export default function VoiceAssistant({ userData }: VoiceAssistantProps) {
               </div>
             </div>
           )}
-          <div ref={messagesEndRef} />
         </div>
       </CardContent>
       <CardFooter className="border-t pt-4">

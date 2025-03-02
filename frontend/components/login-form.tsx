@@ -56,18 +56,18 @@ export default function LoginForm() {
 
   const fetchUserData = async (customerId: string) => {
     try {
-      const userResponse = await fetch(`http://localhost:8000/api/user/${customerId}`)
-      if (!userResponse.ok) {
+      const response = await fetch(`http://localhost:8000/api/user/${customerId}`)
+      
+      if (!response.ok) {
         throw new Error("Failed to fetch user data")
       }
       
-      const userData = await userResponse.json()
+      const userData = await response.json()
+      
+      // Store user data in localStorage
       localStorage.setItem("userData", JSON.stringify(userData))
-      return userData
     } catch (error) {
       console.error("Error fetching user data:", error)
-      toast.error("Failed to load your account data")
-      throw error
     }
   }
 
@@ -112,7 +112,7 @@ export default function LoginForm() {
       </Button>
       <div className="text-center text-sm">
         <span className="text-muted-foreground">Don&apos;t have an account? </span>
-        <Button variant="link" className="p-0 h-auto" type="button">
+        <Button variant="link" className="p-0 h-auto" type="button" onClick={() => router.push("/signup")}>
           Sign up
         </Button>
       </div>
