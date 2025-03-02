@@ -1,114 +1,37 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 from dotenv import load_dotenv
 import os
-import pandas as pd
-import json
-
-# If you need these imports for your Nessie or TTS usage:
 import httpx
-from gtts import gTTS
 
-# If you need these imports for your OpenAI usage:
-from openai import OpenAI
-
-# Load environment variables from .env file
+# Load environment variables
 load_dotenv()
 
-# ---------------------------
-# OpenAI Setup
-# ---------------------------
-openai_api_key = os.getenv("OPENAI_API_KEY")
-if not openai_api_key:
-    raise ValueError("OpenAI API Key not found in .env file.")
-openai_model = "gpt-3.5-turbo"
-
-# Init OpenAI
-client = OpenAI(api_key=openai_api_key)
-
-# ---------------------------
-# Nessie API Setup (Optional)
-# ---------------------------
 NESSIE_API_KEY = os.getenv("NESSIE_API_KEY")
-NESSIE_BASE_URL = "http://api.nessieapi.com"
+NESSIE_BASE_URL = "http://api.nessieisreal.com"  # Adjust if needed
+
+if not NESSIE_API_KEY:
+    raise ValueError("NESSIE_API_KEY is missing from .env")
 
 # ---------------------------
-# FastAPI App
+# Models
 # ---------------------------
-app = FastAPI()
+# Updated SignupData: street is a single field and city, state, zip are separate.
+class SignupData(BaseModel):
+    first_name: str
+    last_name: str
+    username: str
+    password: str
+    street: str  # e.g., "1234 Main Street"
+    city: str
+    state: str
+    zip: str
 
-# ---------------------------
-# CORS Middleware
-# ---------------------------
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Adjust if needed (e.g., ["http://localhost:3000"])
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# ---------------------------
-# Excel Data (AI Banking Advisor)
-# ---------------------------
-products = pd.read_excel('data/data.xlsx', sheet_name=None)
-accounts_df = products['BankAccounts']
-cards_df = products['CreditCards']
-loans_df = products['Loans']
-
-# ---------------------------
-# System Prompt & Utility
-# ---------------------------
-SYSTEM_PROMPT = """
-You are a helpful and concise AI financial advisor.
-Your goal is to recommend the best bank accounts, credit cards, or loans for the user based on their needs.
-Always recommend from the provided list of products. Do not invent new ones.
-
-Format your response like this:
-"The [Product Name] is a great option because [short reason]."
-
-Keep the explanation to 1 or 2 sentences max.
-Be conversational, but to the point.
-Only recommend 1 or 2 products at most, unless the user asks for more options.
-"""
-
-def get_product_list():
-    product_list = "Here are the available products:\n\n"
-
-    # Bank Accounts
-    product_list += "Bank Accounts:\n"
-    for _, row in accounts_df.iterrows():
-        product_list += (
-            f"- {row['Bank']} - {row['Account Name']} ({row['Account Type']}): "
-            f"Monthly Fee: {row['Monthly Fee']}, Minimum Balance: {row['Minimum Balance']}, Perks: {row['Perks']}\n"
-        )
-
-    # Credit Cards
-    product_list += "\nCredit Cards:\n"
-    for _, row in cards_df.iterrows():
-        product_list += (
-            f"- {row['Bank']} - {row['Card Name']}: Interest Rate: {row['Interest Rate (APR) Range']}, "
-            f"Annual Fee: {row['Annual Fee']}, Rewards: {row['Rewards']}, Perks: {row['Perks']}\n"
-        )
-
-    # Loans
-    product_list += "\nLoans:\n"
-    for _, row in loans_df.iterrows():
-        product_list += (
-            f"- {row['Bank']} - {row['Loan Type']}: Interest Rate: {row['Interest Rate (APR) Range']}, "
-            f"Max Amount: {row['Max Amount']}, Term Options: {row['Term Options']}, Perks: {row['Perks']}\n"
-        )
-
-    return product_list
-
-# ---------------------------
-# Pydantic Models
-# ---------------------------
-class ChatRequest(BaseModel):
-    message: str
-    history: List[dict] = []
+class LoginData(BaseModel):
+    username: str
+    password: str
 
 class Account(BaseModel):
     id: str
@@ -133,181 +56,141 @@ class UserData(BaseModel):
     accounts: List[Account]
     transactions: List[Transaction]
 
-class LoginData(BaseModel):
-    username: str
-    password: str
+# ---------------------------
+# Helper Function to Parse Street
+# ---------------------------
+def parse_street(street_str: str) -> dict:
+    """
+    Expects street in the format:
+    "1234 Main Street"
+    Splits into street_number and street_name.
+    """
+    parts = street_str.strip().split(" ", 1)
+    if len(parts) != 2:
+        raise HTTPException(status_code=400, detail="Street must be in the format 'Number Street Name'")
+    return {
+        "street_number": parts[0],
+        "street_name": parts[1]
+    }
 
 # ---------------------------
-# Mock Nessie Data Logic
+# FastAPI App & CORS
 # ---------------------------
-def get_mock_user_data(customer_id: str):
-    """Generate mock data for demonstration purposes."""
-    first_name = "Joe"
-    last_name = "Smith"
+app = FastAPI()
 
-    if customer_id == "65b7a5a9322fa89d340a8c1b":
-        first_name = "Jane"
-        last_name = "Doe"
-    elif customer_id == "65b7a5a9322fa89d340a8c1c":
-        first_name = "Admin"
-        last_name = "User"
-
-    accounts = [
-        Account(
-            id=f"{customer_id}-checking",
-            type="Checking",
-            nickname="Primary Checking",
-            balance=5231.89,
-            rewards=0,
-            account_number="123456789"
-        ),
-        Account(
-            id=f"{customer_id}-savings",
-            type="Savings",
-            nickname="High Yield Savings",
-            balance=12000.00,
-            rewards=0,
-            account_number="987654321"
-        )
-    ]
-
-    transactions = [
-        Transaction(
-            transaction_id=f"{customer_id}-tx1",
-            type="withdrawal",
-            merchant_name="Grocery Store",
-            amount=85.75,
-            date="2025-02-01T12:00:00Z",
-            description="Weekly groceries"
-        ),
-        Transaction(
-            transaction_id=f"{customer_id}-tx2",
-            type="withdrawal",
-            merchant_name="Gas Station",
-            amount=45.00,
-            date="2025-02-03T15:30:00Z",
-            description="Fuel"
-        ),
-        Transaction(
-            transaction_id=f"{customer_id}-tx3",
-            type="deposit",
-            merchant_name="Employer",
-            amount=2500.00,
-            date="2025-02-05T09:00:00Z",
-            description="Salary deposit"
-        ),
-        Transaction(
-            transaction_id=f"{customer_id}-tx4",
-            type="withdrawal",
-            merchant_name="Restaurant",
-            amount=65.40,
-            date="2025-02-07T19:45:00Z",
-            description="Dinner"
-        ),
-        Transaction(
-            transaction_id=f"{customer_id}-tx5",
-            type="withdrawal",
-            merchant_name="Online Store",
-            amount=120.99,
-            date="2025-02-10T14:20:00Z",
-            description="Electronics purchase"
-        )
-    ]
-
-    return UserData(
-        customer_id=customer_id,
-        first_name=first_name,
-        last_name=last_name,
-        accounts=accounts,
-        transactions=transactions
-    )
-
-# ---------------------------
-# Endpoints
-# ---------------------------
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Adjust as needed for production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
-def unified_root():
-    """
-    Single root endpoint that combines both messages.
-    """
-    return {
-        "message": (
-            "AI Banking Advisor is running on gpt-3.5-turbo, and "
-            "Banking API with Nessie integration is also running."
-        )
+def root():
+    return {"message": "AI Banking Advisor & Nessie Backend Active"}
+
+# ---------------------------
+# Signup Endpoint
+# ---------------------------
+@app.post("/api/signup")
+async def signup(signup_data: SignupData):
+    print("Received signup data:")
+    print(signup_data.json())
+
+    # Parse the street input into street_number and street_name
+    parsed_street = parse_street(signup_data.street)
+    print("Parsed street:", parsed_street)
+
+    # Build the nested address payload using the parsed street and the other fields
+    address_payload = {
+        "street_number": parsed_street["street_number"],
+        "street_name": parsed_street["street_name"],
+        "city": signup_data.city,
+        "state": signup_data.state,
+        "zip": signup_data.zip
     }
+    print("Final address payload:", address_payload)
 
-# ---------------------------
-# AI Banking Advisor Routes
-# ---------------------------
-
-@app.post("/chat")
-def chat(request: ChatRequest):
-    """
-    Chat endpoint for AI-based financial product recommendations.
-    """
-    try:
-        history = request.history
-        history.append({"role": "user", "content": request.message})
-
-        # System message includes product list
-        messages = [
-            {
-                "role": "system",
-                "content": SYSTEM_PROMPT + "\n\n" + get_product_list()
-            }
-        ] + history
-
-        # Call OpenAI API
-        response = client.chat.completions.create(
-            model=openai_model,
-            messages=messages
-        )
-        ai_reply = response.choices[0].message.content
-        history.append({"role": "assistant", "content": ai_reply})
-
-        return {"reply": ai_reply, "history": history}
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/products")
-def get_products():
-    """
-    Returns the product data from the Excel file.
-    """
-    return {
-        "BankAccounts": accounts_df.to_dict(orient="records"),
-        "CreditCards": cards_df.to_dict(orient="records"),
-        "Loans": loans_df.to_dict(orient="records")
+    # Build the customer payload (omitting username/password for Nessie)
+    customer_payload = {
+        "first_name": signup_data.first_name,
+        "last_name": signup_data.last_name,
+        "address": address_payload
     }
+    print("Sending customer payload to Nessie API:")
+    print(customer_payload)
 
-# ---------------------------
-# Nessie Mock Routes
-# ---------------------------
+    async with httpx.AsyncClient() as client:
+        customer_response = await client.post(
+            f"{NESSIE_API_KEY and NESSIE_API_KEY and NESSIE_BASE_URL}/customers?key={NESSIE_API_KEY}", 
+            json=customer_payload
+        )
 
+    print("Customer response status:", customer_response.status_code)
+    print("Customer response body:", customer_response.text)
+
+    if customer_response.status_code != 201:
+        raise HTTPException(status_code=500, detail=f"Failed to create customer: {customer_response.text}")
+
+    customer = customer_response.json()
+    customer_created = customer["objectCreated"]
+    customer_id = customer_created["_id"]
+
+    print("Created customer with ID:", customer_id)
+
+    # Create a default Checking account for the new customer
+    account_payload = {
+        "type": "Checking",
+        "nickname": "Primary Checking",
+        "rewards": 0,
+        "balance": 0
+    }
+    print("Sending account payload to Nessie API:")
+    print(account_payload)
+
+    async with httpx.AsyncClient() as client:
+        account_response = await client.post(
+            f"{NESSIE_BASE_URL}/customers/{customer_id}/accounts?key={NESSIE_API_KEY}", 
+            json=account_payload
+        )
+
+    print("Account response status:", account_response.status_code)
+    print("Account response body:", account_response.text)
+
+    if account_response.status_code != 201:
+        raise HTTPException(status_code=500, detail=f"Failed to create initial account: {account_response.text}")
+
+    account = account_response.json()
+    account_created = account.get("objectCreated")
+    if not account_created or "_id" not in account_created:
+        raise HTTPException(status_code=500, detail="Account creation response does not have expected structure.")
+
+    print("Created account with ID:", account_created["_id"])
+
+    return {
+        "message": "User created successfully",
+        "customer_id": customer_id,
+        "account_id": account_created["_id"],
+        "account_type": account_created["type"],
+        "balance": account_created["balance"]
+    }
 @app.post("/api/login")
 async def login(login_data: LoginData):
-    """
-    Mock login that returns a mapped customer ID based on username.
-    """
-    customer_mapping = {
-        "joe": "65b7a5a9322fa89d340a8c1a",
-        "jane": "65b7a5a9322fa89d340a8c1b",
-        "admin": "65b7a5a9322fa89d340a8c1c"
-    }
-
-    if login_data.username not in customer_mapping:
+    async with httpx.AsyncClient() as client:
+        response = await client.get(f"{NESSIE_BASE_URL}/customers?key={NESSIE_API_KEY}")
+    
+    if response.status_code != 200:
+        raise HTTPException(status_code=500, detail="Failed to fetch customers")
+    
+    customers = response.json()
+    # Look for a customer whose first name matches the provided username (ignoring case)
+    user = next(
+        (c for c in customers if c["first_name"].lower() == login_data.username.lower()),
+        None
+    )
+    
+    if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
-
-    return {"customer_id": customer_mapping[login_data.username]}
-
-
-@app.get("/api/user/{customer_id}", response_model=UserData)
-async def get_user_data(customer_id: str):
-    """
-    Returns mock user data, simulating a Nessie API call.
-    """
-    return get_mock_user_data(customer_id)
+    
+    return {"customer_id": user["_id"]}
