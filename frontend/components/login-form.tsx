@@ -56,18 +56,18 @@ export default function LoginForm() {
 
   const fetchUserData = async (customerId: string) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/user/${customerId}`)
-      
-      if (!response.ok) {
+      const userResponse = await fetch(`http://localhost:8000/api/user/${customerId}`)
+      if (!userResponse.ok) {
         throw new Error("Failed to fetch user data")
       }
       
-      const userData = await response.json()
-      
-      // Store user data in localStorage
+      const userData = await userResponse.json()
       localStorage.setItem("userData", JSON.stringify(userData))
+      return userData
     } catch (error) {
       console.error("Error fetching user data:", error)
+      toast.error("Failed to load your account data")
+      throw error
     }
   }
 
