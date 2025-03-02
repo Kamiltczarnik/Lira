@@ -9,7 +9,6 @@ import { cn, formatCurrency } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useRouter } from "next/navigation"
 
-// Define types for our user data
 type Account = {
   id: string
   type: string
@@ -50,7 +49,6 @@ export default function VoiceAssistant({ userData }: VoiceAssistantProps) {
   const [isSpeaking, setIsSpeaking] = useState(true)
   const [transcript, setTranscript] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
-  // We use displayMessages for rendering with unique IDs
   const [displayMessages, setDisplayMessages] = useState<{ text: string; isUser: boolean; id: string }[]>([])
   const [inputMessage, setInputMessage] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
@@ -122,10 +120,15 @@ export default function VoiceAssistant({ userData }: VoiceAssistantProps) {
     }
   }, [synth])
 
-  // Auto-scroll to bottom of chat messages when displayMessages change
+  // Update scrolling when displayMessages or processing state changes
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
-  }, [displayMessages, isProcessing])
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ 
+        behavior: "smooth", 
+        block: "end" 
+      });
+    }
+  }, [displayMessages, isProcessing]);
 
   const toggleListening = () => {
     if (isListening) {
@@ -249,6 +252,10 @@ export default function VoiceAssistant({ userData }: VoiceAssistantProps) {
     }
   }
 
+  const preventScrollPropagation = (e: React.WheelEvent) => {
+    e.stopPropagation()
+  }
+
   return (
     <Card className="w-full h-full min-h-[600px] flex flex-col">
       <CardHeader className="pb-4 flex flex-row items-center justify-between">
@@ -272,6 +279,7 @@ export default function VoiceAssistant({ userData }: VoiceAssistantProps) {
         <div 
           ref={chatContainerRef}
           className="h-[500px] overflow-y-auto overflow-x-hidden pr-4 space-y-4 mb-4 p-4 bg-muted/30 rounded-lg"
+          onWheel={preventScrollPropagation}
         >
           {displayMessages.map((message) => (
             <div key={message.id} className={`flex ${message.isUser ? "justify-end" : "justify-start"}`}>

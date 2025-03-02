@@ -181,22 +181,22 @@ export default function Dashboard() {
             <Link href="/dashboard" className="text-sm font-medium hover:underline underline-offset-4">
               Dashboard
             </Link>
-            <Link href="#" className="text-sm font-medium hover:underline underline-offset-4">
+            {/* <Link href="#" className="text-sm font-medium hover:underline underline-offset-4">
               Accounts
-            </Link>
-            <Link href="#" className="text-sm font-medium hover:underline underline-offset-4">
+            </Link> */}
+            {/* <Link href="#" className="text-sm font-medium hover:underline underline-offset-4">
               Payments
-            </Link>
+            </Link> */}
           </nav>
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon">
+            {/* <Button variant="ghost" size="icon">
               <Bell className="h-5 w-5" />
               <span className="sr-only">Notifications</span>
             </Button>
             <Button variant="ghost" size="icon">
               <User className="h-5 w-5" />
               <span className="sr-only">Account</span>
-            </Button>
+            </Button> */}
             <Button variant="ghost" size="icon" onClick={handleLogout}>
               <LogOut className="h-5 w-5" />
               <span className="sr-only">Log out</span>
