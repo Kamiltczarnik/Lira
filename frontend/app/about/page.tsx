@@ -2,24 +2,21 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import {PieChart, Mic, MessageSquare } from "lucide-react"
+import { PieChart, Mic, MessageSquare } from "lucide-react"
 import LoginForm from "@/components/login-form"
 
-export default function Home() {
+export default function About() {
   return (
     <div className="flex flex-col min-h-screen">
       <header className="border-b">
         <div className="container flex h-16 items-center justify-between py-4">
           <div className="flex items-center gap-2">
-          <Image src="/logo.png" alt="My Logo" width={64} height={64}   style={{ width: '64px', height: '64px' }}  />
+            <Image src="/logo.png" alt="My Logo" width={64} height={64} style={{ width: '64px', height: '64px' }} />
             <span className="text-xl font-bold">Lira</span>
           </div>
           <nav className="hidden md:flex gap-6">
-            <Link href="#" className="text-sm font-medium hover:underline underline-offset-4">
-              Personal
-            </Link>
-            <Link href="/business" className="text-sm font-medium hover:underline underline-offset-4">
-              Business
+            <Link href="/" className="text-sm font-medium hover:underline underline-offset-4">
+              Home
             </Link>
             <Link href="/about" className="text-sm font-medium hover:underline underline-offset-4">
               About
@@ -30,31 +27,23 @@ export default function Home() {
           </nav>
         </div>
       </header>
+
       <main className="flex-1">
         <section className="w-full py-12 md:py-24 lg:py-32 bg-muted">
           <div className="container px-4 md:px-6">
             <div className="grid gap-6 lg:grid-cols-2 lg:gap-12 items-center">
               <div className="space-y-4">
                 <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-                  Banking with the power of voice
+                  About Lira
                 </h1>
                 <p className="text-muted-foreground md:text-xl">
-                  Experience the future of banking with our AI-powered voice assistant that makes managing your finances
-                  effortless.
+                  Our company was founded in March of 2025 by Kamil, Albert , Joseph and Joe. We are focused on providing banking services easily accesible to everyone. 
                 </p>
-                <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                  <Button asChild size="lg">
-                    <Link href="#login">Get Started</Link>
-                  </Button>
-                  <Button variant="outline" size="lg">
-                    Learn More
-                  </Button>
-                </div>
               </div>
               <div className="mx-auto lg:ml-auto">
                 <Image
-                  src="/logo.png"
-                  alt="Banking Dashboard"
+                  src="/about-image.png"
+                  alt="About Lira"
                   width={600}
                   height={400}
                   className="rounded-lg object-cover"
@@ -69,9 +58,9 @@ export default function Home() {
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
-                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Meet Your AI Banking Assistant</h2>
+                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Our Mission</h2>
                 <p className="max-w-[700px] text-muted-foreground md:text-xl">
-                  Experience the future of banking with our advanced voice-powered AI assistant.
+                  Our goal is to provide secure, efficient, and accessible banking experiences through voice-powered AI.
                 </p>
               </div>
             </div>
@@ -84,7 +73,7 @@ export default function Home() {
                     </div>
                     <h3 className="text-xl font-bold">Voice Commands</h3>
                     <p className="text-muted-foreground">
-                      Simply speak to your assistant to check balances, make transfers, and more.
+                      Control your finances with just your voice.
                     </p>
                   </div>
                 </CardContent>
@@ -97,7 +86,7 @@ export default function Home() {
                     </div>
                     <h3 className="text-xl font-bold">Natural Conversations</h3>
                     <p className="text-muted-foreground">
-                      Talk naturally with your assistant as if you were speaking to a human banker.
+                      Engage in meaningful conversations with your assistant, just like you would with a human.
                     </p>
                   </div>
                 </CardContent>
@@ -110,7 +99,7 @@ export default function Home() {
                     </div>
                     <h3 className="text-xl font-bold">Smart Insights</h3>
                     <p className="text-muted-foreground">
-                      Get personalized financial advice and insights from your AI assistant.
+                      Get personalized advice to manage your finances better.
                     </p>
                   </div>
                 </CardContent>
@@ -118,28 +107,13 @@ export default function Home() {
             </div>
           </div>
         </section>
-
-        <section id="login" className="w-full py-12 md:py-24 lg:py-32 bg-muted">
-          <div className="container px-4 md:px-6">
-            <div className="grid gap-6 lg:grid-cols-2 lg:gap-12 items-center">
-              <div className="space-y-4">
-                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Log in to your account</h2>
-                <p className="text-muted-foreground">
-                  Access your accounts, check balances, and manage your finances securely.
-                </p>
-              </div>
-              <div className="mx-auto w-full max-w-md space-y-2 bg-background p-6 rounded-lg shadow-sm">
-                <LoginForm />
-              </div>
-            </div>
-          </div>
-        </section>
       </main>
+
       <footer className="border-t">
         <div className="container flex flex-col gap-4 py-10 md:flex-row md:gap-8">
           <div className="flex flex-col gap-2 md:gap-4 md:flex-1">
             <div className="flex items-center gap-2">
-          <Image src="/logo.png" alt="My Logo" width={64} height={64}   style={{ width: '64px', height: '64px' }}  />
+              <Image src="/logo.png" alt="My Logo" width={64} height={64} style={{ width: '64px', height: '64px' }} />
               <span className="text-lg font-bold">Lira</span>
             </div>
             <p className="text-sm text-muted-foreground">Secure, smart banking for everyone.</p>
@@ -169,7 +143,7 @@ export default function Home() {
               <h4 className="text-sm font-medium">Company</h4>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="#" className="text-muted-foreground hover:underline">
+                  <Link href="/about" className="text-muted-foreground hover:underline">
                     About
                   </Link>
                 </li>
@@ -209,4 +183,3 @@ export default function Home() {
     </div>
   )
 }
-

@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from dotenv import load_dotenv
 import json
-
+from gtts import gTTS
 # Load environment variables from .env file
 load_dotenv()
 
@@ -52,6 +52,9 @@ class UserData(BaseModel):
 class LoginData(BaseModel):
     username: str
     password: str
+
+
+# text to speech class
 
 # Mock user data for demonstration
 def get_mock_user_data(customer_id: str):
