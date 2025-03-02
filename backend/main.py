@@ -106,17 +106,9 @@ def get_product_list():
 # ---------------------------
 # Pydantic Models
 # ---------------------------
-class ChatMessage(BaseModel):
-    role: str
-    content: str
-
 class ChatRequest(BaseModel):
-    messages: List[ChatMessage]
-    user_data: Optional[dict] = None
-
-class ChatResponse(BaseModel):
-    reply: str
-    audio_url: Optional[str] = None
+    message: str
+    history: List[dict] = []
 
 class Account(BaseModel):
     id: str
@@ -250,69 +242,36 @@ def unified_root():
 # AI Banking Advisor Routes
 # ---------------------------
 
-@app.post("/api/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
+@app.post("/chat")
+def chat(request: ChatRequest):
+    """
+    Chat endpoint for AI-based financial product recommendations.
+    """
     try:
-        # Log the incoming request
-        print(f"Received chat request with {len(request.messages)} messages")
-        for i, msg in enumerate(request.messages):
-            print(f"Message {i}: {msg.role} - {msg.content[:50]}...")
-        
-        print(f"User data included: {request.user_data is not None}")
-        
-        # Extract messages from the request
-        messages = [{"role": msg.role, "content": msg.content} for msg in request.messages]
-        
-        # Add system message to guide the AI
-        system_message = {
-            "role": "system", 
-            "content": "You are a helpful AI banking assistant. Provide concise and accurate information about banking services, account details, and financial advice. If user data is available, reference it in your responses."
-        }
-        
-        # Prepare the full message list for OpenAI
-        full_messages = [system_message] + messages
-        
-        print(f"Sending {len(full_messages)} messages to OpenAI")
-        
+        history = request.history
+        history.append({"role": "user", "content": request.message})
+
+        # System message includes product list
+        messages = [
+            {
+                "role": "system",
+                "content": SYSTEM_PROMPT + "\n\n" + get_product_list()
+            }
+        ] + history
+
         # Call OpenAI API
         response = client.chat.completions.create(
             model=openai_model,
-            messages=full_messages
+            messages=messages
         )
-        
-        # Extract the reply
-        reply = response.choices[0].message.content
-        print(f"Received reply from OpenAI: {reply[:100]}...")
-        
-        # Generate speech from text
-        audio_url = None
-        try:
-            # Create a filename based on a hash of the content
-            import hashlib
-            filename = hashlib.md5(reply.encode()).hexdigest() + ".mp3"
-            filepath = f"audio/{filename}"
-            
-            print(f"Generating speech file: {filepath}")
-            
-            # Generate the speech file
-            tts = gTTS(text=reply, lang='en', slow=False)
-            tts.save(filepath)
-            
-            # Return the URL to the audio file
-            audio_url = f"http://localhost:8000/audio/{filename}"
-            print(f"Audio URL: {audio_url}")
-        except Exception as e:
-            print(f"Error generating speech: {e}")
-        
-        # Prepare the response
-        response_data = {"reply": reply, "audio_url": audio_url}
-        print(f"Sending response: {response_data}")
-        
-        return response_data
-    
+        ai_reply = response.choices[0].message.content
+        history.append({"role": "assistant", "content": ai_reply})
+
+        return {"reply": ai_reply, "history": history}
+
     except Exception as e:
-        print(f"Error in chat endpoint: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/products")
 def get_products():
@@ -352,10 +311,3 @@ async def get_user_data(customer_id: str):
     Returns mock user data, simulating a Nessie API call.
     """
     return get_mock_user_data(customer_id)
-
-# Add a route to serve the audio files
-from fastapi.staticfiles import StaticFiles
-app.mount("/audio", StaticFiles(directory="audio"), name="audio")
-
-# Create audio directory if it doesn't exist
-os.makedirs("audio", exist_ok=True)
