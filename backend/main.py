@@ -1,31 +1,115 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-import httpx
-import os
 from pydantic import BaseModel
 from typing import List, Optional
 from dotenv import load_dotenv
+import os
+import pandas as pd
 import json
+
+# If you need these imports for your Nessie or TTS usage:
+import httpx
 from gtts import gTTS
+
+# If you need these imports for your OpenAI usage:
+from openai import OpenAI
+
 # Load environment variables from .env file
 load_dotenv()
 
+# ---------------------------
+# OpenAI Setup
+# ---------------------------
+openai_api_key = os.getenv("OPENAI_API_KEY")
+if not openai_api_key:
+    raise ValueError("OpenAI API Key not found in .env file.")
+openai_model = "gpt-3.5-turbo"
+
+# Init OpenAI
+client = OpenAI(api_key=openai_api_key)
+
+# ---------------------------
+# Nessie API Setup (Optional)
+# ---------------------------
+NESSIE_API_KEY = os.getenv("NESSIE_API_KEY")
+NESSIE_BASE_URL = "http://api.nessieapi.com"
+
+# ---------------------------
+# FastAPI App
+# ---------------------------
 app = FastAPI()
 
-# Add CORS middleware to allow frontend to call our API
+# ---------------------------
+# CORS Middleware
+# ---------------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Update with your frontend URL
+    allow_origins=["*"],  # Adjust if needed (e.g., ["http://localhost:3000"])
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Nessie API configuration
-NESSIE_API_KEY = os.getenv("NESSIE_API_KEY")
-NESSIE_BASE_URL = "http://api.nessieapi.com"
+# ---------------------------
+# Excel Data (AI Banking Advisor)
+# ---------------------------
+products = pd.read_excel('data/data.xlsx', sheet_name=None)
+accounts_df = products['BankAccounts']
+cards_df = products['CreditCards']
+loans_df = products['Loans']
 
-# Define data models
+# ---------------------------
+# System Prompt & Utility
+# ---------------------------
+SYSTEM_PROMPT = """
+You are a helpful and concise AI financial advisor.
+Your goal is to recommend the best bank accounts, credit cards, or loans for the user based on their needs.
+Always recommend from the provided list of products. Do not invent new ones.
+
+Format your response like this:
+"The [Product Name] is a great option because [short reason]."
+
+Keep the explanation to 1 or 2 sentences max.
+Be conversational, but to the point.
+Only recommend 1 or 2 products at most, unless the user asks for more options.
+"""
+
+def get_product_list():
+    product_list = "Here are the available products:\n\n"
+
+    # Bank Accounts
+    product_list += "Bank Accounts:\n"
+    for _, row in accounts_df.iterrows():
+        product_list += (
+            f"- {row['Bank']} - {row['Account Name']} ({row['Account Type']}): "
+            f"Monthly Fee: {row['Monthly Fee']}, Minimum Balance: {row['Minimum Balance']}, Perks: {row['Perks']}\n"
+        )
+
+    # Credit Cards
+    product_list += "\nCredit Cards:\n"
+    for _, row in cards_df.iterrows():
+        product_list += (
+            f"- {row['Bank']} - {row['Card Name']}: Interest Rate: {row['Interest Rate (APR) Range']}, "
+            f"Annual Fee: {row['Annual Fee']}, Rewards: {row['Rewards']}, Perks: {row['Perks']}\n"
+        )
+
+    # Loans
+    product_list += "\nLoans:\n"
+    for _, row in loans_df.iterrows():
+        product_list += (
+            f"- {row['Bank']} - {row['Loan Type']}: Interest Rate: {row['Interest Rate (APR) Range']}, "
+            f"Max Amount: {row['Max Amount']}, Term Options: {row['Term Options']}, Perks: {row['Perks']}\n"
+        )
+
+    return product_list
+
+# ---------------------------
+# Pydantic Models
+# ---------------------------
+class ChatRequest(BaseModel):
+    message: str
+    history: List[dict] = []
+
 class Account(BaseModel):
     id: str
     type: str
@@ -53,22 +137,21 @@ class LoginData(BaseModel):
     username: str
     password: str
 
-
-# text to speech class
-
-# Mock user data for demonstration
+# ---------------------------
+# Mock Nessie Data Logic
+# ---------------------------
 def get_mock_user_data(customer_id: str):
+    """Generate mock data for demonstration purposes."""
     first_name = "Joe"
     last_name = "Smith"
-    
+
     if customer_id == "65b7a5a9322fa89d340a8c1b":
         first_name = "Jane"
         last_name = "Doe"
     elif customer_id == "65b7a5a9322fa89d340a8c1c":
         first_name = "Admin"
         last_name = "User"
-    
-    # Create mock accounts
+
     accounts = [
         Account(
             id=f"{customer_id}-checking",
@@ -87,8 +170,7 @@ def get_mock_user_data(customer_id: str):
             account_number="987654321"
         )
     ]
-    
-    # Create mock transactions
+
     transactions = [
         Transaction(
             transaction_id=f"{customer_id}-tx1",
@@ -131,7 +213,7 @@ def get_mock_user_data(customer_id: str):
             description="Electronics purchase"
         )
     ]
-    
+
     return UserData(
         customer_id=customer_id,
         first_name=first_name,
@@ -140,26 +222,92 @@ def get_mock_user_data(customer_id: str):
         transactions=transactions
     )
 
+# ---------------------------
+# Endpoints
+# ---------------------------
+
 @app.get("/")
-async def root():
-    return {"message": "Banking API with Nessie integration is running"}
+def unified_root():
+    """
+    Single root endpoint that combines both messages.
+    """
+    return {
+        "message": (
+            "AI Banking Advisor is running on gpt-3.5-turbo, and "
+            "Banking API with Nessie integration is also running."
+        )
+    }
+
+# ---------------------------
+# AI Banking Advisor Routes
+# ---------------------------
+
+@app.post("/chat")
+def chat(request: ChatRequest):
+    """
+    Chat endpoint for AI-based financial product recommendations.
+    """
+    try:
+        history = request.history
+        history.append({"role": "user", "content": request.message})
+
+        # System message includes product list
+        messages = [
+            {
+                "role": "system",
+                "content": SYSTEM_PROMPT + "\n\n" + get_product_list()
+            }
+        ] + history
+
+        # Call OpenAI API
+        response = client.chat.completions.create(
+            model=openai_model,
+            messages=messages
+        )
+        ai_reply = response.choices[0].message.content
+        history.append({"role": "assistant", "content": ai_reply})
+
+        return {"reply": ai_reply, "history": history}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/products")
+def get_products():
+    """
+    Returns the product data from the Excel file.
+    """
+    return {
+        "BankAccounts": accounts_df.to_dict(orient="records"),
+        "CreditCards": cards_df.to_dict(orient="records"),
+        "Loans": loans_df.to_dict(orient="records")
+    }
+
+# ---------------------------
+# Nessie Mock Routes
+# ---------------------------
 
 @app.post("/api/login")
 async def login(login_data: LoginData):
-    # Map usernames to customer IDs
+    """
+    Mock login that returns a mapped customer ID based on username.
+    """
     customer_mapping = {
         "joe": "65b7a5a9322fa89d340a8c1a",
         "jane": "65b7a5a9322fa89d340a8c1b",
         "admin": "65b7a5a9322fa89d340a8c1c"
     }
-    
+
     if login_data.username not in customer_mapping:
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    
-    # Return the customer ID that will be used for subsequent API calls
+
     return {"customer_id": customer_mapping[login_data.username]}
+
 
 @app.get("/api/user/{customer_id}", response_model=UserData)
 async def get_user_data(customer_id: str):
-    # Instead of calling the Nessie API, use mock data
+    """
+    Returns mock user data, simulating a Nessie API call.
+    """
     return get_mock_user_data(customer_id)

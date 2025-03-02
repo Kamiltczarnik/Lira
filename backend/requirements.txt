@@ -43,4 +43,11 @@ typing_extensions==4.12.2
 uritemplate==4.1.1
 urllib3==2.3.0
 uvicorn==0.34.0
+fastapi
+uvicorn
+openai
+pandas
+pydantic
+python-dotenv
+openpyxl
 python-dotenv==1.0.0
