@@ -1,15 +1,12 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Mic, MicOff, Send, MessageSquare, Volume2, VolumeX, Loader2 } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { formatCurrency } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { cn, formatCurrency } from "@/lib/utils"
 
 // Define types for our user data
 type Account = {
@@ -61,6 +58,12 @@ export default function VoiceAssistant({ userData }: VoiceAssistantProps) {
   
   // Speech recognition setup
   const recognitionRef = useRef<any>(null)
+  const isListeningRef = useRef(false)
+  // New ref to store the text present when mic starts
+  const initialInputRef = useRef("")
+  
+  // Create a ref for the textarea
+  const textAreaRef = useRef<HTMLTextAreaElement>(null)
 
   // Speech synthesis setup
   const synth = typeof window !== "undefined" ? window.speechSynthesis : null
@@ -82,9 +85,7 @@ export default function VoiceAssistant({ userData }: VoiceAssistantProps) {
     }])
   }, [userData])
 
-  // Speech recognition setup
   useEffect(() => {
-    // Initialize speech recognition if available in the browser
     if (typeof window !== "undefined" && ("SpeechRecognition" in window || "webkitSpeechRecognition" in window)) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
       recognitionRef.current = new SpeechRecognition()
@@ -92,13 +93,28 @@ export default function VoiceAssistant({ userData }: VoiceAssistantProps) {
       recognitionRef.current.interimResults = true
 
       recognitionRef.current.onresult = (event: any) => {
-        const current = event.resultIndex
-        const result = event.results[current][0].transcript
-        setTranscript(result)
-      }
-
+        let interimTranscript = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          interimTranscript += event.results[i][0].transcript;
+        }
+        // Clean up the new speech input
+        const trimmedInterim = interimTranscript.trim();
+        let appendedText = "";
+        if (initialInputRef.current) {
+          if (trimmedInterim) {
+            // If the base text doesn't end in a space, add one
+            const separator = initialInputRef.current.endsWith(" ") ? "" : " ";
+            appendedText = separator + trimmedInterim.charAt(0).toLowerCase() + trimmedInterim.slice(1);
+          }
+        } else {
+          appendedText = trimmedInterim;
+        }
+        // Update inputMessage with the base plus new appended text
+        setInputMessage(initialInputRef.current + appendedText);
+      };
+      
       recognitionRef.current.onend = () => {
-        if (isListening) {
+        if (isListeningRef.current) {
           recognitionRef.current.start()
         }
       }
@@ -113,6 +129,7 @@ export default function VoiceAssistant({ userData }: VoiceAssistantProps) {
       }
     }
   }, [isListening])
+  }, [synth])
 
   // Handle transcript changes
   useEffect(() => {
@@ -126,33 +143,40 @@ export default function VoiceAssistant({ userData }: VoiceAssistantProps) {
     }
   }, [transcript, isListening, isProcessing])
 
+
   const toggleListening = () => {
-    if (isListening) {
-      // Stop listening
-      if (recognitionRef.current) {
-        recognitionRef.current.stop()
-      }
-      setIsListening(false)
-      
-      // If we have a transcript, send it
-      if (transcript) {
-        handleUserMessage(transcript)
-        setTranscript("")
+  if (isListening) {
+    // Stop listening
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    setIsListening(false);
+    isListeningRef.current = false;
+
+    // If we have a transcript, send it
+    if (transcript) {
+      handleUserMessage(transcript);
+      setTranscript("");
+    }
+  } else {
+    // Start listening
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+        isListeningRef.current = true;
+
+        // Store current input value so new speech appends to it
+        initialInputRef.current = inputMessage;
+      } catch (error) {
+        console.error("Error starting speech recognition:", error);
       }
     } else {
-      // Start listening
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.start()
-          setIsListening(true)
-        } catch (error) {
-          console.error("Error starting speech recognition:", error)
-        }
-      } else {
-        console.error("Speech recognition not supported")
-      }
+      console.error("Speech recognition not supported");
     }
   }
+};
+
 
   const toggleSpeech = () => {
     setIsSpeaking(!isSpeaking)
@@ -206,31 +230,46 @@ export default function VoiceAssistant({ userData }: VoiceAssistantProps) {
     }
   }
 
-  // Replace lines 209-213 with this improved preventScrollPropagation function
-  const preventScrollPropagation = (e: React.WheelEvent) => {
-    // This ensures the scroll event doesn't bubble up to the main page
-    e.stopPropagation();
-  }
+// Improved preventScrollPropagation function
+const preventScrollPropagation = (e: React.WheelEvent) => {
+  // This ensures the scroll event doesn't bubble up to the main page
+  e.stopPropagation();
+}
 
-  const handleUserMessage = async (text: string) => {
-    if (!text.trim()) return
+// Combined handleUserMessage function
+const handleUserMessage = async (text: string) => {
+  if (!text.trim()) return;
 
-    // Create a unique ID for this message
-    const userMessageId = `user-${Date.now()}`
-    
-    // Create message objects
-    const userMessage = { role: "user", content: text }
-    const userDisplayMessage = { text, isUser: true, id: userMessageId }
-    
-    // Update state with user message
-    setMessages(prevMessages => [...prevMessages, userMessage])
-    setDisplayMessages(prevDisplayMessages => [...prevDisplayMessages, userDisplayMessage])
-    setIsProcessing(true)
+  // Create a unique ID for this message
+  const userMessageId = `user-${Date.now()}`;
 
-    try {
+  // Create message objects
+  const userMessage = { role: "user", content: text };
+  const userDisplayMessage = { text, isUser: true, id: userMessageId };
+
+  // Update state with user message
+  setMessages((prevMessages) => [...prevMessages, userMessage]);
+  setDisplayMessages((prevDisplayMessages) => [...prevDisplayMessages, userDisplayMessage]);
+  setIsProcessing(true);
+
+  try {
+    // If an environment variable is set to simulate the response, use simulated logic
+    if (process.env.NEXT_PUBLIC_SIMULATE_AI_RESPONSE === "true") {
+      // Simulated AI response (from voice-activation branch)
+      setTimeout(() => {
+        const simulatedResponse = "I'm sorry, I don't understand that query.";
+        setMessages((prev) => [...prev, { role: "assistant", content: simulatedResponse }]);
+        setDisplayMessages((prev) => [
+          ...prev,
+          { text: simulatedResponse, isUser: false, id: `ai-${Date.now()}` },
+        ]);
+        setIsProcessing(false);
+      }, 1000);
+    } else {
+      // Use the API call from the gpt-connector/feature branch
       // Get the current messages including the new user message
-      const currentMessages = [...messages, userMessage]
-      
+      const currentMessages = [...messages, userMessage];
+
       // Call the backend API
       const response = await fetch("http://localhost:8000/api/chat", {
         method: "POST",
@@ -239,13 +278,30 @@ export default function VoiceAssistant({ userData }: VoiceAssistantProps) {
         },
         body: JSON.stringify({
           messages: currentMessages,
-          user_data: userData
+          user_data: userData,
         }),
-      })
-      
+      });
+
       if (!response.ok) {
-        throw new Error("Failed to get response from AI")
+        throw new Error("Failed to get response from AI");
       }
+
+      const data = await response.json();
+      const aiReply = data.reply;
+
+      setMessages((prev) => [...prev, { role: "assistant", content: aiReply }]);
+      setDisplayMessages((prev) => [
+        ...prev,
+        { text: aiReply, isUser: false, id: `ai-${Date.now()}` },
+      ]);
+      setIsProcessing(false);
+    }
+  } catch (error) {
+    console.error("Error in handleUserMessage:", error);
+    setIsProcessing(false);
+  }
+};
+
 
       const data = await response.json()
       
@@ -283,12 +339,19 @@ export default function VoiceAssistant({ userData }: VoiceAssistantProps) {
   }
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (inputMessage.trim()) {
-      handleUserMessage(inputMessage)
-      setInputMessage("")
-    }
+  e.preventDefault();
+  if (!inputMessage.trim()) return;
+
+  handleUserMessage(inputMessage);
+  setInputMessage("");
+  setTranscript("");
+  
+  // Reset the textarea height by accessing the ref
+  if (textAreaRef.current) {
+    textAreaRef.current.style.height = "40px"; // Or your desired min height
   }
+}
+
 
   // Replace lines 293-297 with this enhanced scrollToBottom function
   useEffect(() => {
@@ -326,32 +389,38 @@ export default function VoiceAssistant({ userData }: VoiceAssistantProps) {
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="flex-grow overflow-hidden pb-6">
-        <div 
-          ref={chatContainerRef}
-          className="h-[500px] overflow-y-auto overflow-x-hidden pr-4 space-y-4 mb-4 p-4 bg-muted/30 rounded-lg"
-          onWheel={preventScrollPropagation}
-        >
-          {displayMessages.map((message) => (
-            <div key={message.id} className={`flex ${message.isUser ? "justify-end" : "justify-start"}`}>
+<CardContent className="flex-grow overflow-hidden pb-6">
+  <div
+    ref={chatContainerRef}
+    className="h-[500px] overflow-y-auto overflow-x-hidden pr-4 space-y-4 mb-4 p-4 bg-muted/30 rounded-lg"
+    onWheel={preventScrollPropagation}
+  >
+    {displayMessages.map((message) => (
+      <div key={message.id} className={`flex ${message.isUser ? "justify-end" : "justify-start"}`}>
+        {/* Render message content here, for example: */}
+        <p>{message.text}</p>
+      </div>
+    ))}
+  </div>
+</CardContent>
               <div
                 className={cn(
                   "max-w-[80%] rounded-lg px-4 py-3 text-sm shadow-sm",
-                  message.isUser ? "bg-primary text-primary-foreground" : "bg-background border",
+                  message.isUser ? "bg-primary text-primary-foreground" : "bg-background border"
                 )}
               >
                 {message.text}
               </div>
             </div>
           ))}
-          <div ref={messagesEndRef} />
-          {transcript && (
-            <div className="flex justify-end">
-              <div className="max-w-[80%] rounded-lg px-4 py-3 text-sm bg-primary/50 text-primary-foreground shadow-sm">
-                {transcript}
-              </div>
-            </div>
-          )}
+ {/* Display a bubble with either transcript or inputMessage */}
+    {(transcript || inputMessage) && (
+      <div className="flex justify-end">
+        <div className="max-w-[80%] rounded-lg px-4 py-3 text-sm bg-primary/50 text-primary-foreground shadow-sm">
+          {transcript ? transcript : inputMessage}
+        </div>
+      </div>
+    )}
           {isProcessing && (
             <div className="flex justify-start">
               <div className="rounded-lg px-4 py-3 text-sm bg-background border shadow-sm flex items-center">
@@ -364,6 +433,7 @@ export default function VoiceAssistant({ userData }: VoiceAssistantProps) {
       </CardContent>
       <CardFooter className="border-t pt-4">
         <div className="w-full space-y-4">
+          {/* Mic button */}
           <div className="relative w-full h-16 flex items-center justify-center">
             <Button
               variant={isListening ? "destructive" : "default"}
@@ -371,7 +441,7 @@ export default function VoiceAssistant({ userData }: VoiceAssistantProps) {
               onClick={toggleListening}
               className={cn(
                 "absolute rounded-full w-16 h-16 flex items-center justify-center transition-all",
-                isListening && "animate-pulse",
+                isListening && "animate-pulse"
               )}
             >
               {isListening ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
@@ -379,15 +449,24 @@ export default function VoiceAssistant({ userData }: VoiceAssistantProps) {
             </Button>
           </div>
 
+          {/* Input form */}
           <form onSubmit={handleSubmit} className="flex w-full gap-2">
-            <Input
+            <textarea
               placeholder="Type your message..."
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               disabled={isListening}
-              className="flex-1"
+              ref={textAreaRef}
+              className="flex-1 w-full resize-none overflow-hidden rounded border px-3 py-2"
+              rows={1}
+              style={{ minHeight: "40px", overflow: "hidden", height: "auto" }}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.style.height = "auto";
+                target.style.height = `${target.scrollHeight}px`;
+              }}
             />
-            <Button type="submit" disabled={isListening || !inputMessage.trim()}>
+            <Button type="submit" disabled={!inputMessage.trim()}>
               <Send className="h-4 w-4 mr-2" />
               Send
             </Button>
@@ -398,4 +477,3 @@ export default function VoiceAssistant({ userData }: VoiceAssistantProps) {
     </Card>
   )
 }
-
